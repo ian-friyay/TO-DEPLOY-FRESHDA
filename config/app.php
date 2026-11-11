@@ -52,7 +52,9 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => in_array(env('APP_URL'), [null, '', 'http://', 'https://'], true)
+        ? 'http://localhost'
+        : env('APP_URL'),
 
     /*
     |--------------------------------------------------------------------------

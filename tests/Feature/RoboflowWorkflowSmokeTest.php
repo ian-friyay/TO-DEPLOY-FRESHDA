@@ -120,6 +120,40 @@ class RoboflowWorkflowSmokeTest extends TestCase
         $this->assertSame('ai', $scan['source']);
     }
 
+    public function test_it_translates_fresh_da_project_5_prefixed_classes_payload(): void
+    {
+        $roboflowOutput = [
+            'predictions' => [
+                'predictions' => [
+                    'freshness_fresh' => ['confidence' => 0.83, 'class_id' => 0],
+                    'freshness_moderate' => ['confidence' => 0.17, 'class_id' => 1],
+                    'freshness_not_fresh' => ['confidence' => 0.03, 'class_id' => 2],
+                    'species_bangus' => ['confidence' => 0.03, 'class_id' => 3],
+                    'species_dalagang_bukid' => ['confidence' => 0.04, 'class_id' => 4],
+                    'species_galunggong' => ['confidence' => 0.95, 'class_id' => 5],
+                    'species_other_fishes' => ['confidence' => 0.02, 'class_id' => 6],
+                    'species_tilapia' => ['confidence' => 0.02, 'class_id' => 7],
+                    'species_tulingan' => ['confidence' => 0.02, 'class_id' => 8],
+                ],
+                'predicted_classes' => ['freshness_fresh', 'species_galunggong'],
+            ],
+            'inference_id' => 'test-id',
+            'model_id' => 'evelyns-workspace-gfs2g/fresh-da-project-5-vit-base-patch16-224-in21k-t1',
+        ];
+
+        $scan = FishAiService::fromRoboflowOutputs($roboflowOutput);
+
+        $this->assertNotNull($scan);
+        $this->assertTrue($scan['is_fish']);
+        $this->assertSame('Galonggong', $scan['species']);
+        $this->assertSame('Decapterus macarellus', $scan['species_label']);
+        $this->assertSame(0.95, $scan['species_confidence']);
+        $this->assertSame('fresh', $scan['freshness']);
+        $this->assertSame(83, $scan['freshness_percentage']);
+        $this->assertSame(0.83, $scan['freshness_confidence']);
+        $this->assertSame('ai', $scan['source']);
+    }
+
     public function test_it_rejects_images_classified_as_other_fishes(): void
     {
         $roboflowOutput = [

@@ -27,7 +27,7 @@ class RoboflowWorkflowClient
         return new self(
             apiKey: config('roboflow.api_key'),
             workspace: config('roboflow.workspace', 'evelyns-workspace-gfs2g'),
-            workflowId: config('roboflow.workflow_id', 'fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic'),
+            workflowId: config('roboflow.workflow_id', 'fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic'),
             apiUrl: config('roboflow.api_url', 'https://serverless.roboflow.com'),
             timeout: (int) config('roboflow.timeout', 30),
             retryTimes: (int) config('roboflow.retry_times', 3),
@@ -62,7 +62,7 @@ class RoboflowWorkflowClient
             '%s/%s/workflows/%s',
             rtrim($this->apiUrl ?: 'https://serverless.roboflow.com', '/'),
             rawurlencode($this->workspace ?: 'evelyns-workspace-gfs2g'),
-            rawurlencode($this->workflowId ?: 'fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic')
+            rawurlencode($this->workflowId ?: 'fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic')
         );
 
         $imageInput = $this->buildImageInput($imageSource);

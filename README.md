@@ -69,7 +69,7 @@ To run Fresh-DA on your local machine:
 
 ## Roboflow Workflow Integration
 
-Fresh-DA integrates the Roboflow Serverless Workflow **"FRESH-DA PROJECT vfresh-da-project-4-vit_small_patch16_dinov3.lvd1689m-t1 Logic"** for species identification and freshness analysis.
+Fresh-DA integrates the Roboflow Serverless Workflow **"fresh-da-project-5-vit-base-patch16-224-in21k-t1 vfresh-da-project-5-vit-base-patch16-224-in21k-t1 Logic"** for species identification and freshness analysis.
 
 ### Configuration
 
@@ -78,16 +78,19 @@ Add the following environment variables to your `.env` file:
 ```env
 ROBOFLOW_API_KEY=your_roboflow_api_key_here
 ROBOFLOW_WORKSPACE=evelyns-workspace-gfs2g
-ROBOFLOW_WORKFLOW_ID=fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic
+ROBOFLOW_WORKFLOW_ID=fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic
 ROBOFLOW_API_URL=https://serverless.roboflow.com
 ROBOFLOW_TIMEOUT=30
 ROBOFLOW_RETRY_TIMES=3
 ROBOFLOW_RETRY_SLEEP_MS=500
+ROBOFLOW_MIN_CONFIDENCE=0.60
 ```
 
-- **Endpoint**: `POST https://serverless.roboflow.com/evelyns-workspace-gfs2g/workflows/fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic`
+- **Endpoint**: `POST https://serverless.roboflow.com/evelyns-workspace-gfs2g/workflows/fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic`
+- **Model**: `evelyns-workspace-gfs2g/fresh-da-project-5-vit-base-patch16-224-in21k-t1` (Vision Transformer ViT-Base)
 - **Authentication**: `Authorization: Bearer <ROBOFLOW_API_KEY>`
-- **Input schema**: Accepts local files (converted to base64) or HTTPS URLs: `{"inputs": {"image": {"type": "base64", "value": "..."}}}`.
+- **Input schema**: Accepts local files (converted to base64) or HTTPS URLs: `{"inputs": {"image": {"type": "base64", "value": "..."}}}`. Optional parameters: `confidence` (float, default 0.4), `model_id`.
+- **Output schema**: Returns `predictions` dictionary containing classification predictions (`freshness_*` and `species_*`), `inference_id`, and `model_id`.
 - **Service**: Handled via `App\Services\RoboflowWorkflowClient` and integrated into `App\Services\FishAiService`.
 - **Offline / Error Resiliency**: If the Roboflow service is offline or unconfigured, the application falls back gracefully to deterministic simulated scans so scans never crash.
 

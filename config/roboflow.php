@@ -25,7 +25,7 @@ return [
 
     'workflow_id' => env(
         'ROBOFLOW_WORKFLOW_ID',
-        'fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic'
+        'fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic'
     ),
 
     /*

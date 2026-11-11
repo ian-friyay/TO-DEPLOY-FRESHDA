@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
  * Species + freshness recognition for a scan.
  *
  * Scans can be processed via either:
- * 1. Roboflow Serverless Workflow ("FRESH-DA PROJECT vfresh-da-project-4-vit_small_patch16_dinov3.lvd1689m-t1 Logic")
+ * 1. Roboflow Serverless Workflow ("fresh-da-project-5-vit-base-patch16-224-in21k-t1 vfresh-da-project-5-vit-base-patch16-224-in21k-t1 Logic")
  *    when ROBOFLOW_API_KEY is configured in config/roboflow.php.
  * 2. Self-hosted FastAPI YOLOv8 service when AI_SERVICE_URL is configured in config/ai.php.
  *
@@ -138,6 +138,36 @@ class FishAiService
     }
 
     /**
+     * Normalize model species class names (e.g. "species_galunggong" -> "Galonggong").
+     */
+    public static function normalizeSpeciesName(string $name): string
+    {
+        $clean = trim((string) preg_replace('/^species_/i', '', $name));
+        $clean = str_replace('_', ' ', $clean);
+
+        $lookup = [
+            'bangus' => 'Bangus',
+            'galonggong' => 'Galonggong',
+            'galunggong' => 'Galonggong',
+            'dalagang bukid' => 'Dalagang Bukid',
+            'tilapia' => 'Tilapia',
+            'tulingan' => 'Tulingan',
+            'other fishes' => 'Other Fishes',
+            'other fish' => 'Other Fishes',
+            'milkfish' => 'Milkfish',
+            'salmon' => 'Salmon',
+            'mackerel' => 'Mackerel',
+            'tuna' => 'Tuna',
+            'snapper' => 'Snapper',
+            'catfish' => 'Catfish',
+        ];
+
+        $lower = strtolower($clean);
+
+        return $lookup[$lower] ?? ucwords($clean);
+    }
+
+    /**
      * Execute inference via Roboflow Serverless Workflow client.
      *
      * @return array{species: string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, source: string}|null
@@ -187,6 +217,10 @@ class FishAiService
             'moderate' => 'moderate',
             'not fresh' => 'not_fresh',
             'not_fresh' => 'not_fresh',
+            'freshness_fresh' => 'fresh',
+            'freshness_moderate' => 'moderate',
+            'freshness_slightly_fresh' => 'moderate',
+            'freshness_not_fresh' => 'not_fresh',
         ];
 
         $topSpecies = null;
@@ -207,7 +241,7 @@ class FishAiService
             } else {
                 if ($confidence > $topSpeciesConf) {
                     $topSpeciesConf = $confidence;
-                    $topSpecies = (string) $className;
+                    $topSpecies = self::normalizeSpeciesName((string) $className);
                 }
             }
         }
@@ -217,7 +251,7 @@ class FishAiService
             foreach ($predictionsBlock['predicted_classes'] as $predClass) {
                 $norm = strtolower(trim((string) $predClass));
                 if (! isset($freshnessMap[$norm])) {
-                    $topSpecies = (string) $predClass;
+                    $topSpecies = self::normalizeSpeciesName((string) $predClass);
                     $topSpeciesConf = 0.90;
                     break;
                 }

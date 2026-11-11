@@ -102,7 +102,7 @@ Before relying on a package's API, confirm its installed version:
 # Roboflow Serverless Workflow Integration
 
 - Roboflow workflow execution is handled by `App\Services\RoboflowWorkflowClient` and configured via `config/roboflow.php`.
-- The current workflow is `FRESH-DA PROJECT vfresh-da-project-4-vit_small_patch16_dinov3.lvd1689m-t1 Logic` (`fresh-da-project-vfresh-da-project-4-vitsmallpatch16dinov3lvd1689m-t1-logic`) in workspace `evelyns-workspace-gfs2g`.
+- The current workflow is `fresh-da-project-5-vit-base-patch16-224-in21k-t1 vfresh-da-project-5-vit-base-patch16-224-in21k-t1 Logic` (`fresh-da-project-5-vit-base-patch16-224-in21k-t1-vfresh-da-project-5-vit-base-patch16-224-in21k-t1-logic`) in workspace `evelyns-workspace-gfs2g`.
 - When communicating with the serverless endpoint (`https://serverless.roboflow.com`), header Bearer authentication must always be used (`Authorization: Bearer <API_KEY>`). Never pass the API key in the query string or body.
 - When calling `runWorkflow`, image inputs must be HTTPS URLs or local file paths (encoded to base64). Plain `http://` URLs must be rejected.
 - Large base64 image outputs from workflows should be decoded and persisted to disk (`storage/app/public/workflow_outputs`) rather than held in memory or logged.
