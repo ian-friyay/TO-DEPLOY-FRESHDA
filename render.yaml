@@ -30,7 +30,7 @@ services:
       - key: FILESYSTEM_DISK
         value: public
       - key: APP_KEY
-        generateValue: true
+        sync: false
 
 databases:
   - name: freshda-db
