@@ -140,17 +140,25 @@
             </div>
 
             <div class="card">
+              @php
+                  $aiServiceConfigured = filled(config('roboflow.api_key')) || filled(config('ai.url'));
+                  $aiServiceLabel = filled(config('roboflow.api_key'))
+                      ? 'Roboflow workflow configured'
+                      : (filled(config('ai.url')) ? 'AI model service configured' : 'AI service not configured');
+              @endphp
               <div class="ai-status">
                 <div class="ai-status-left">
                   <div class="ai-icon"><i class="ri-cpu-line"></i></div>
                   <div class="ai-meta">
                     <strong>AI Service</strong>
-                    <span>Not configured · offline analysis</span>
+                    <span>{{ $aiServiceLabel }}</span>
                   </div>
                 </div>
-                <span class="badge ready"
-                  ><span class="status-dot"></span> Ready</span
-                >
+                @if ($aiServiceConfigured)
+                  <span class="badge ready"><span class="status-dot"></span> Configured</span>
+                @else
+                  <span class="badge"><span class="status-dot"></span> Not Configured</span>
+                @endif
               </div>
             </div>
           </section>

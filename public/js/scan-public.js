@@ -229,10 +229,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   analyzeBtn.addEventListener("click", function () {
     if (submitting || !selectedFile) return;
-    if (!navigator.onLine) {
-      showError("No Internet Connection — Reconnect and try again.");
-      return;
-    }
     submitting = true;
 
     hideError();
@@ -309,12 +305,14 @@ document.addEventListener("DOMContentLoaded", function () {
         result.scrollIntoView({ behavior: "smooth", block: "nearest" });
       })
       .catch(function (error) {
-        if (!navigator.onLine) {
-          showError("No Internet Connection — Reconnect and try again.");
-          return;
-        }
         var modal = document.getElementById("publicScanModalOverlay");
         var modalText = document.getElementById("publicScanModalText");
+        if (error && error.name === "TypeError") {
+          showError(
+            "Could not reach the scan server. Check your connection or try again."
+          );
+          return;
+        }
         var isFishError = error.message && (
           error.message.toLowerCase().indexOf("fish") !== -1 ||
           error.message.toLowerCase().indexOf("unclear") !== -1

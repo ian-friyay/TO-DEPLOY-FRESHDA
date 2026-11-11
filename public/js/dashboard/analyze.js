@@ -9,10 +9,6 @@
             showToast("Please Upload Or Capture a Fish Image First", "error");
             return;
           }
-          if (!navigator.onLine) {
-            showToast("No Internet Connection — Reconnect and try again.", "error");
-            return;
-          }
           stopCameraStream();
           state.analysisInProgress = true;
           var btn = this;
@@ -90,9 +86,7 @@
               btn.disabled = false;
               btn.innerHTML = originalHtml;
               showToast(
-                navigator.onLine
-                  ? "Network Error — Please Try Again"
-                  : "No Internet Connection — Reconnect and try again.",
+                "Could not reach the scan server. Check your connection or try again.",
                 "error"
               );
             });

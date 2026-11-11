@@ -20,6 +20,15 @@ class PublicScanTest extends TestCase
         $response->assertSee('Login', false);
     }
 
+    public function test_public_scan_does_not_treat_the_browser_online_flag_as_connectivity(): void
+    {
+        $script = file_get_contents(public_path('js/scan-public.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringNotContainsString('navigator.onLine', $script);
+        $this->assertStringContainsString('Could not reach the scan server.', $script);
+    }
+
     public function test_a_guest_can_analyze_an_image_and_nothing_is_saved(): void
     {
         config(['ai.url' => 'http://fish-model.test']);

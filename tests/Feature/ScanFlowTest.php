@@ -45,6 +45,32 @@ class ScanFlowTest extends TestCase
         $this->assertStringContainsString('state.capturedFile', $script);
     }
 
+    public function test_dashboard_scan_does_not_treat_the_browser_online_flag_as_connectivity(): void
+    {
+        $script = $this->dashboardScript();
+
+        $this->assertStringNotContainsString('navigator.onLine', $script);
+        $this->assertStringContainsString('Could not reach the scan server.', $script);
+    }
+
+    public function test_dashboard_ai_status_reflects_server_configuration(): void
+    {
+        config([
+            'roboflow.api_key' => 'rf_test_key',
+            'ai.url' => null,
+        ]);
+
+        $html = (string) $this->actingAs(User::factory()->create())
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Roboflow workflow configured', $html);
+        $this->assertStringContainsString('> Configured</span>', $html);
+        $this->assertStringNotContainsString('rf_test_key', $html);
+        $this->assertStringNotContainsString('offline analysis', $html);
+    }
+
     /**
      * Every element the dashboard script looks up must exist in the rendered page,
      * otherwise the handler silently breaks with a null reference.
