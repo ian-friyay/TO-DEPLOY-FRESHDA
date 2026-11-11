@@ -13,11 +13,17 @@ class ScanController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
-        return response()->json(
-            $this->scans->store($request->user(), $request->file('image')),
-        );
+        $result = $this->scans->store($request->user(), $request->file('image'));
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'AI analysis is currently unavailable. Please try again later.',
+            ], 503);
+        }
+
+        return response()->json($result);
     }
 }

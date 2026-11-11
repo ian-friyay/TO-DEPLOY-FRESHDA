@@ -22,10 +22,9 @@
 |         "freshness_confidence": 0.87                // optional
 |     }
 |
-| While AI_SERVICE_URL is empty — and whenever the service is unreachable,
+| If AI_SERVICE_URL is empty — or the configured service is unreachable,
 | slower than the timeout, answers with an error, or breaks the contract —
-| FishAiService falls back to deterministic simulated results, so a scan
-| never fails just because the model is offline.
+| the scan is reported as unavailable instead of showing a simulated result.
 |
 */
 

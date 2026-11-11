@@ -14,14 +14,13 @@ class PublicScanController extends Controller
      *
      * Nothing is persisted on purpose: public traffic must not create scan
      * records, notifications, or inventory updates — that belongs to the
-     * authenticated scanner. FishAiService answers from the deployed model
-     * when AI_SERVICE_URL is configured and from the offline simulator when
-     * it is not, exactly like the private scanner.
+     * authenticated scanner. FishAiService returns a result only when a
+     * configured model can analyze the image.
      */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
         /* The upload's temp path lives for this request only, which is long
@@ -30,6 +29,12 @@ class PublicScanController extends Controller
         $imagePath = $image !== null && $image->isValid() ? $image->getRealPath() : null;
 
         $result = app(FishAiService::class)->predict($imagePath ?: null);
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'AI analysis is currently unavailable. Please try again later.',
+            ], 503);
+        }
 
         /* Rejects non-fish images (e.g. persons, backgrounds, or low confidence) */
         if (isset($result['is_fish']) && ! $result['is_fish']) {
@@ -50,9 +55,7 @@ class PublicScanController extends Controller
                 : ($result['freshness'] === 'moderate' ? 'warn' : 'bad'),
             'confidence_band' => FishAiService::confidenceBand((float) $result['species_confidence']),
             'source' => $result['source'],
-            'message' => $result['source'] === 'ai'
-                ? 'Analysis Complete — AI Model Result.'
-                : 'Analysis Complete — Simulated Result (AI Service Offline).',
+            'message' => 'Analysis Complete — AI Model Result.',
         ]);
     }
 }

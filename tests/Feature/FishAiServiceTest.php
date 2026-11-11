@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * The offline recognizer powers labels, bands and scan results, so its
+ * The model recognizer powers scan results, so its
  * helpers must keep the same guarantees the old AI plumbing enforced.
  */
 class FishAiServiceTest extends TestCase
@@ -44,16 +44,14 @@ class FishAiServiceTest extends TestCase
         $this->assertSame('Galunggong', FishAiService::latinFor('Galunggong'));
     }
 
-    public function test_simulated_results_carry_an_honest_simulated_source(): void
+    public function test_predict_returns_null_when_no_model_service_is_configured(): void
     {
-        $result = (new FishAiService)->predict();
+        config([
+            'ai.url' => null,
+            'roboflow.api_key' => null,
+        ]);
 
-        $this->assertSame('simulated', $result['source']);
-        $this->assertContains($result['freshness'], ['fresh', 'moderate', 'not_fresh']);
-        $this->assertGreaterThanOrEqual(0, $result['freshness_percentage']);
-        $this->assertLessThanOrEqual(100, $result['freshness_percentage']);
-        $this->assertArrayHasKey('species', $result);
-        $this->assertNotSame('', $result['species']);
+        $this->assertNull((new FishAiService)->predict($this->modelSampleImage()));
     }
 
     public function test_a_connected_model_answer_is_mapped_into_the_scan_contract(): void
@@ -107,8 +105,7 @@ class FishAiServiceTest extends TestCase
         $this->assertSame(0.66, $result['freshness_confidence']);
     }
 
-    /** An error answer degrades to simulation; a scan must never 500. */
-    public function test_an_erroring_model_service_falls_back_to_a_simulated_result(): void
+    public function test_an_erroring_model_service_returns_no_result(): void
     {
         config(['ai.url' => 'http://fish-model.test']);
 
@@ -116,24 +113,20 @@ class FishAiServiceTest extends TestCase
             'fish-model.test/predict' => Http::response(['detail' => 'model warming up'], 503),
         ]);
 
-        $result = (new FishAiService)->predict($this->modelSampleImage());
-
-        $this->assertSame('simulated', $result['source']);
+        $this->assertNull((new FishAiService)->predict($this->modelSampleImage()));
     }
 
-    public function test_an_unreachable_model_service_falls_back_to_a_simulated_result(): void
+    public function test_an_unreachable_model_service_returns_no_result(): void
     {
         config(['ai.url' => 'http://fish-model.test']);
 
         Http::fake(fn () => throw new ConnectionException('Connection refused'));
 
-        $result = (new FishAiService)->predict($this->modelSampleImage());
-
-        $this->assertSame('simulated', $result['source']);
+        $this->assertNull((new FishAiService)->predict($this->modelSampleImage()));
     }
 
     /** The contract in config/ai.php is enforced, not trusted. */
-    public function test_a_payload_outside_the_contract_falls_back_to_a_simulated_result(): void
+    public function test_a_payload_outside_the_contract_returns_no_result(): void
     {
         config(['ai.url' => 'http://fish-model.test']);
 
@@ -145,9 +138,7 @@ class FishAiServiceTest extends TestCase
             ]),
         ]);
 
-        $result = (new FishAiService)->predict($this->modelSampleImage());
-
-        $this->assertSame('simulated', $result['source']);
+        $this->assertNull((new FishAiService)->predict($this->modelSampleImage()));
     }
 
     /** Nothing to analyse means the model service is never called at all. */
@@ -157,9 +148,7 @@ class FishAiServiceTest extends TestCase
 
         Http::fake();
 
-        $result = (new FishAiService)->predict();
-
-        $this->assertSame('simulated', $result['source']);
+        $this->assertNull((new FishAiService)->predict());
         Http::assertNothingSent();
     }
 
@@ -197,7 +186,7 @@ class FishAiServiceTest extends TestCase
         $this->assertSame(89, $result['freshness_percentage']);
     }
 
-    public function test_predict_degrades_to_simulated_when_roboflow_errors(): void
+    public function test_predict_returns_no_result_when_roboflow_errors(): void
     {
         config([
             'roboflow.api_key' => 'rf_test_key',
@@ -208,9 +197,7 @@ class FishAiServiceTest extends TestCase
             'serverless.roboflow.com/*' => Http::response(['message' => 'Internal server error'], 500),
         ]);
 
-        $result = (new FishAiService)->predict($this->modelSampleImage());
-
-        $this->assertSame('simulated', $result['source']);
+        $this->assertNull((new FishAiService)->predict($this->modelSampleImage()));
     }
 
     /** A real temp file, so the multipart client has a body to attach. */

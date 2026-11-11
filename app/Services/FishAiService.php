@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\Log;
  * 2. Self-hosted FastAPI YOLOv8 service when AI_SERVICE_URL is configured in config/ai.php.
  *
  * If no service is configured or if an error / contract breach occurs,
- * predict() degrades gracefully to deterministic simulated results so
- * scans never fail.
+ * predict() returns null so the scanner can report that analysis is unavailable.
  */
 class FishAiService
 {
@@ -40,22 +39,21 @@ class FishAiService
 
     /**
      * The only verdicts the app understands; a model answer naming anything
-     * else is a contract breach and degrades to a simulated result.
+     * else is a contract breach and is rejected.
      *
      * @var array<int, string>
      */
     private const FRESHNESS_STATES = ['fresh', 'moderate', 'not_fresh'];
 
     /**
-     * Produce the result for a scan: the Roboflow or FastAPI model's answer
-     * when connected, a deterministic simulated one otherwise.
+     * Produce a real model result or null when no model can analyze the image.
      *
-     * @return array{species: string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, source: string}
+     * @return array{species: string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, source: string}|null
      */
-    public function predict(?string $imagePath = null): array
+    public function predict(?string $imagePath = null): ?array
     {
         if ($imagePath === null || ! is_file($imagePath)) {
-            return self::simulated();
+            return null;
         }
 
         // 1. Try Roboflow Workflow if configured
@@ -76,8 +74,9 @@ class FishAiService
             }
         }
 
-        // 3. Fallback to deterministic simulated result
-        return self::simulated();
+        Log::warning('No fish AI service is configured or available to analyze the image.');
+
+        return null;
     }
 
     /**
@@ -93,37 +92,6 @@ class FishAiService
             $confidence >= 0.60 => 'moderate',
             default => 'low',
         };
-    }
-
-    /**
-     * Build a deterministic-looking offline result for a scan.
-     *
-     * @return array{species: string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, source: string}
-     */
-    public static function simulated(): array
-    {
-        $classes = [
-            ['fresh', 80, 98],
-            ['fresh', 80, 98],
-            ['moderate', 60, 79],
-            ['not_fresh', 20, 55],
-        ];
-
-        [$species, $label] = self::CANDIDATES[array_rand(self::CANDIDATES)];
-        [$freshness, $min, $max] = $classes[array_rand($classes)];
-        $percentage = random_int($min, $max);
-
-        return [
-            'is_fish' => true,
-            'species' => $species,
-            'species_label' => $label,
-            'species_confidence' => round(random_int(8500, 9900) / 10000, 2),
-            'freshness' => $freshness,
-            'freshness_percentage' => $percentage,
-            'freshness_confidence' => round($percentage / 100, 2),
-            'source' => 'simulated',
-            'message' => 'Analysis Complete — AI Service Offline, Simulated Result Shown.',
-        ];
     }
 
     public static function latinFor(string $species): string

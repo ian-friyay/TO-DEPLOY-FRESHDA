@@ -18,23 +18,28 @@ class ScanService
     public function __construct(private NotificationService $notifications) {}
 
     /**
-     * Store one analyzed scan and return the payload the scanner renders.
+     * Store one model-analyzed scan and return the payload the scanner renders.
      *
-     * @return array{id: int, name: ?string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, cls: string, confidence_band: string, image: ?string, source: string, message: string}
+     * @return array{id: int, name: ?string, species_label: string, species_confidence: float, freshness: string, freshness_percentage: int, freshness_confidence: float, cls: string, confidence_band: string, image: ?string, source: string, message: string}|null
      */
-    public function store(User $user, ?UploadedFile $image): array
+    public function store(User $user, UploadedFile $image): ?array
     {
         $imagePath = null;
 
-        if ($image !== null && $image->isValid()) {
+        if ($image->isValid()) {
             $imagePath = $image->store('scans', 'public');
         }
 
         $absolutePath = $imagePath === null ? null : Storage::disk('public')->path($imagePath);
-
-        /* The model service answers when it is connected (source "ai");
-           FishAiService degrades to a simulated result when it is not. */
         $result = app(FishAiService::class)->predict($absolutePath);
+
+        if ($result === null) {
+            if ($imagePath !== null) {
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            return null;
+        }
 
         /* Rejects non-fish images (e.g. persons, backgrounds, or low confidence) */
         if (isset($result['is_fish']) && ! $result['is_fish']) {
@@ -59,8 +64,6 @@ class ScanService
 
         $this->notifications->scanCompleted($scan, $result['source']);
 
-        /* D10: only a real model result may restamp inventory freshness —
-           a simulated scan must never overwrite the vendor's data. */
         if ($user->isVendor() && $result['source'] === 'ai') {
             $this->syncInventory($user, $scan);
         }
@@ -77,9 +80,7 @@ class ScanService
             'confidence_band' => FishAiService::confidenceBand((float) $scan->species_confidence),
             'image' => $imagePath === null ? null : asset('storage/'.$imagePath),
             'source' => $result['source'],
-            'message' => $result['source'] === 'ai'
-                ? 'Analysis Complete — AI Model Result.'
-                : 'Analysis Complete — AI Service Offline, Simulated Result Shown.',
+            'message' => 'Analysis Complete — AI Model Result.',
         ];
     }
 

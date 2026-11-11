@@ -229,6 +229,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   analyzeBtn.addEventListener("click", function () {
     if (submitting || !selectedFile) return;
+    if (!navigator.onLine) {
+      showError("No Internet Connection — Reconnect and try again.");
+      return;
+    }
     submitting = true;
 
     hideError();
@@ -305,6 +309,10 @@ document.addEventListener("DOMContentLoaded", function () {
         result.scrollIntoView({ behavior: "smooth", block: "nearest" });
       })
       .catch(function (error) {
+        if (!navigator.onLine) {
+          showError("No Internet Connection — Reconnect and try again.");
+          return;
+        }
         var modal = document.getElementById("publicScanModalOverlay");
         var modalText = document.getElementById("publicScanModalText");
         var isFishError = error.message && (

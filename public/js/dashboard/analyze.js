@@ -9,6 +9,10 @@
             showToast("Please Upload Or Capture a Fish Image First", "error");
             return;
           }
+          if (!navigator.onLine) {
+            showToast("No Internet Connection — Reconnect and try again.", "error");
+            return;
+          }
           stopCameraStream();
           state.analysisInProgress = true;
           var btn = this;
@@ -36,6 +40,10 @@
             .then(function (r) {
               return r.json().catch(function () {
                 return {};
+              }).then(function (result) {
+                result = result || {};
+                result.status = r.status;
+                return result;
               });
             })
             .then(function (result) {
@@ -43,6 +51,10 @@
               btn.disabled = false;
               btn.innerHTML = originalHtml;
               if (!result.id) {
+                if (result.status === 503) {
+                  showToast(result.message || "AI analysis is currently unavailable. Please try again later.", "error");
+                  return;
+                }
                 var errorMsg =
                   (result && result.errors && result.errors.image && result.errors.image[0]) ||
                   (result && result.message) ||
@@ -77,7 +89,12 @@
               state.analysisInProgress = false;
               btn.disabled = false;
               btn.innerHTML = originalHtml;
-              showToast("Network Error — Please Try Again", "error");
+              showToast(
+                navigator.onLine
+                  ? "Network Error — Please Try Again"
+                  : "No Internet Connection — Reconnect and try again.",
+                "error"
+              );
             });
         });
 
@@ -308,4 +325,3 @@
         .addEventListener("click", function (e) {
           if (e.target === this) this.classList.remove("open");
         });
-

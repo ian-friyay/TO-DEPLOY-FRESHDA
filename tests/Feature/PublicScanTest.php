@@ -22,11 +22,22 @@ class PublicScanTest extends TestCase
 
     public function test_a_guest_can_analyze_an_image_and_nothing_is_saved(): void
     {
+        config(['ai.url' => 'http://fish-model.test']);
+        Http::fake([
+            'fish-model.test/predict' => Http::response([
+                'species' => 'Tilapia',
+                'species_confidence' => 0.94,
+                'freshness' => 'fresh',
+                'freshness_percentage' => 87,
+                'freshness_confidence' => 0.87,
+            ]),
+        ]);
+
         $response = $this->postJson('/scan/analyze', [
             'image' => UploadedFile::fake()->image('fish.jpg'),
         ]);
 
-        $response->assertOk();
+        $response->assertOk()->assertJsonPath('source', 'ai');
         $response->assertJsonStructure([
             'name',
             'species_label',
@@ -52,6 +63,21 @@ class PublicScanTest extends TestCase
         ]);
 
         $response->assertUnprocessable();
+    }
+
+    public function test_the_public_analyzer_reports_unavailable_when_no_model_is_configured(): void
+    {
+        config([
+            'ai.url' => null,
+            'roboflow.api_key' => null,
+        ]);
+
+        $response = $this->postJson('/scan/analyze', [
+            'image' => UploadedFile::fake()->image('fish.jpg'),
+        ]);
+
+        $response->assertStatus(503)
+            ->assertJsonPath('message', 'AI analysis is currently unavailable. Please try again later.');
     }
 
     public function test_the_public_analyzer_rejects_non_fish_images(): void
@@ -88,9 +114,9 @@ class PublicScanTest extends TestCase
         for ($attempt = 0; $attempt < 10; $attempt++) {
             $status = $this
                 ->postJson('/scan/analyze', ['image' => null])
-                ->assertOk()
+                ->assertUnprocessable()
                 ->getStatusCode();
-            $this->assertSame(200, $status);
+            $this->assertSame(422, $status);
         }
 
         /* The 11th request within the same minute is rate limited. */

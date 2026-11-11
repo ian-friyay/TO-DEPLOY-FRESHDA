@@ -112,9 +112,13 @@ class ScanFlowTest extends TestCase
         $this->assertStringContainsString('function openScanDetail(row)', $script);
     }
 
-    public function test_camera_snapshot_upload_is_stored_and_analysed_offline(): void
+    public function test_camera_snapshot_is_not_saved_when_ai_service_is_unavailable(): void
     {
         Storage::fake('public');
+        config([
+            'ai.url' => null,
+            'roboflow.api_key' => null,
+        ]);
 
         $user = User::factory()->create();
 
@@ -122,47 +126,22 @@ class ScanFlowTest extends TestCase
             'image' => UploadedFile::fake()->image('capture.jpg', 640, 480),
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('source', 'simulated')
-            ->assertJsonStructure([
-                'id',
-                'name',
-                'species_label',
-                'species_confidence',
-                'freshness',
-                'freshness_percentage',
-                'freshness_confidence',
-                'cls',
-            ]);
+        $response->assertStatus(503)
+            ->assertJsonPath('message', 'AI analysis is currently unavailable. Please try again later.');
 
-        $scan = Scan::query()->sole();
-
-        $this->assertSame($user->id, $scan->user_id);
-        $this->assertSame('single', $scan->source);
-        $this->assertNotNull($scan->image_path);
-        Storage::disk('public')->assertExists($scan->image_path);
+        $this->assertDatabaseCount('scans', 0);
+        $this->assertSame([], Storage::disk('public')->files('scans'));
     }
 
-    public function test_scan_without_an_image_returns_a_simulated_result(): void
+    public function test_scan_without_an_image_is_rejected(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->postJson('/scans', []);
 
-        $response->assertOk()
-            ->assertJsonPath('source', 'simulated')
-            ->assertJsonStructure([
-                'id',
-                'name',
-                'species_label',
-                'species_confidence',
-                'freshness',
-                'freshness_percentage',
-                'freshness_confidence',
-                'cls',
-            ]);
+        $response->assertUnprocessable()->assertJsonValidationErrors('image');
 
-        $this->assertDatabaseCount('scans', 1);
+        $this->assertDatabaseCount('scans', 0);
     }
 
     public function test_scan_rejects_a_file_that_is_not_an_image(): void
@@ -177,9 +156,14 @@ class ScanFlowTest extends TestCase
         $this->assertDatabaseCount('scans', 0);
     }
 
-    /** D10 — a simulated result must never restamp the vendor's inventory. */
-    public function test_a_simulated_scan_leaves_inventory_untouched(): void
+    public function test_an_unavailable_scan_leaves_inventory_untouched(): void
     {
+        Storage::fake('public');
+        config([
+            'ai.url' => null,
+            'roboflow.api_key' => null,
+        ]);
+
         $vendor = User::factory()->vendor()->create();
 
         $items = collect(FishAiService::CANDIDATES)
@@ -191,9 +175,12 @@ class ScanFlowTest extends TestCase
                 'last_scanned_at' => now()->subDay(),
             ]));
 
-        $response = $this->actingAs($vendor)->postJson('/scans', []);
+        $response = $this->actingAs($vendor)->postJson('/scans', [
+            'image' => UploadedFile::fake()->image('fish.jpg'),
+        ]);
 
-        $response->assertOk()->assertJsonPath('source', 'simulated');
+        $response->assertStatus(503);
+        $this->assertDatabaseCount('scans', 0);
 
         foreach ($items as $item) {
             $fresh = $item->fresh();
@@ -206,6 +193,7 @@ class ScanFlowTest extends TestCase
     /** The real model result still refreshes the matching item only. */
     public function test_an_ai_scan_refreshes_the_matching_inventory_item(): void
     {
+        Storage::fake('public');
         $vendor = User::factory()->vendor()->create();
 
         /* Stand in a connected model service so the "ai" path is exercised. */
@@ -240,7 +228,9 @@ class ScanFlowTest extends TestCase
             'last_scanned_at' => now()->subDay(),
         ]);
 
-        $response = $this->actingAs($vendor)->postJson('/scans', []);
+        $response = $this->actingAs($vendor)->postJson('/scans', [
+            'image' => UploadedFile::fake()->image('fish.jpg'),
+        ]);
 
         $response->assertOk()->assertJsonPath('source', 'ai');
 
