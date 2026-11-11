@@ -1,0 +1,13 @@
+.env
+.env.*
+.git
+.github
+.idea
+.phpunit.cache
+.phpunit.result.cache
+.vscode
+node_modules
+vendor
+tests
+auth.json
+storage/logs/*.log
